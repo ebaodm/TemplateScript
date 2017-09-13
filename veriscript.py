@@ -90,7 +90,66 @@ class TemplateScript(object):
             /
         """
         return public_function_script
+    '''生成创建template表的脚本'''
+    def __create_template_script_datatype(self):
+        script=None
+        all_table_script=''
+        for table_name in self.__table_list:
+            script='drop table '+table_name+';\n'
+            script=script+'create table '+table_name +'(\n'
+            for row in self.__mapping_column_list:
+                if row.tableName==table_name:
+                    #调整字段的长度，使脚本对齐美观
+                    script=script+row.columnName.ljust(30)
+                    #为空的长度也都设置为默认300
+                    try:
+                        # #处理字段长度，如果是纯数字的，如果超过300则用定义的值，否则用默认值，确保有超过300长度的创建表是正确的
+                        # data_length=self.__get_data_length(row.length)
+                        # if data_length!=None:
+                        #     if data_length>300:
+                        #         col_len=data_length
+                        #     else:
+                        #         col_len=300
+                        # else:
+                        #     col_len=300
+                        # 处理字段长度，varchar2, number如果有长度则设置，否则设置为默认值
+                        data_length = row.length
+                        if row.length is not None:
+                            if row.dataType=='VARCHAR2' or row.dataType=='NUMBER':
+                                data_length = row.length
+                        else:
+                            if row.dataType == 'VARCHAR2':
+                                data_length = '300'
+                            elif row.dataType=='NUMBER':
+                                data_length = ''
 
+
+                        # 创建主键的索引
+                        if row.primaryKey=='Y':
+                            primary_key=' primary key'
+                        else:
+                            primary_key=''
+                        # 判断数据类型，为不同的类型生成相应的脚本
+                        if row.dataType=='DATE':
+                            col_str=' date'
+                        elif row.dataType == 'VARCHAR2':
+                            col_str = ' varchar2({0}) '.format(data_length)
+                        elif row.dataType == 'NUMBER':
+                            if data_length == '':
+                                col_str = 'number'
+                            else:
+                                col_str = 'number ({0}) '.format(data_length)
+                        else:
+                            col_str = ' varchar2(300) '
+                        # 补充PK值
+                        script = script + col_str+'{0}'.format(primary_key)
+                    except Exception as e:
+                        print('创建Template表时出现错误： '+str(e))
+                    script=script+',\n'
+            script=script[0:len(script)-2]+'\n);'
+            all_table_script=all_table_script+script+'\n'
+        return all_table_script
+        pass
     '''生成创建template表的脚本'''
     def __create_template_script(self):
         script=None
@@ -272,7 +331,7 @@ class TemplateScript(object):
         need_verify = True
         if refertable:
             #只校验template之间的外銉关系
-            if refertable[0:2]!='DM_':
+            if str(refertable)[0:2]!='DM_':
                 return ''
         else:
             return ''
@@ -382,7 +441,10 @@ class TemplateScript(object):
                     unique_sql=self.__get_unique_sql(row.moduleName,row.tableName,row.columnName,row.primaryKey)
                     total_veri_sql = total_veri_sql + unique_sql
                     # 外键类型校验，只校验template之间的关系，代码表由于字段名称不统一，目前 还没有办法把校验加进来
-                    fk_sql=self.__get_foreign_key_sql(row.moduleName,row.tableName,row.columnName,row.referTable)
+                    try:
+                        fk_sql=self.__get_foreign_key_sql(row.moduleName,row.tableName,row.columnName,row.referTable)
+                    except Exception as e:
+                        print(str(e))
                     total_veri_sql = total_veri_sql + fk_sql
                     pass
         total_veri_sql=total_veri_sql+'\n commit;\n'
@@ -404,10 +466,13 @@ class TemplateScript(object):
         return public_function_script+'\n'+create_table_script_result
 
     '''把创建表脚本写入文件'''
-    def save_template_create_script(self,file_name):
+    def save_template_create_script(self,file_name, need_data_type = False):
         script_file=open(file_name,'w')
         # Template表的创建脚本
-        create_table_script_template=self.__create_template_script()
+        if need_data_type is False:
+            create_table_script_template=self.__create_template_script()
+        else:
+            create_table_script_template = self.__create_template_script_datatype()
 
         script_file.write(create_table_script_template)
         script_file.close()
@@ -436,4 +501,5 @@ if __name__=='__main__':
     script=TemplateScript('./templates/UAL_Mapping_Party_V0.2.5.xlsx')
     script.clear_sqlldr_file()
     script.gen_control_files()
+    script.save_template_create_script()
     # script.save_script('party.sql')

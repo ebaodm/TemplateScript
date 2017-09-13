@@ -12,7 +12,7 @@ class Template(object):
     # 初始化数据文件到object
     def __init__(self,file_name,ignore_strike_row=True):
         self.__file_name=file_name
-        self.excel_handler=openpyxl.load_workbook(file_name)
+        self.excel_handler=openpyxl.load_workbook(file_name, data_only=True)
         self.__ignore_strike_row=ignore_strike_row
 
     # test template cols
@@ -46,13 +46,17 @@ class Template(object):
             # 循环所有 的列
             cell_value={}
             for cell in row:
-                #忽略已经加了删除线的行
-                if cell.font.strikethrough and self.__ignore_strike_row:
+                #忽略已经加了删除线的行,只检查前两列是否有删除线，则说明本行是删除的，其它单元格的删除线不识别
+                if cell.font.strikethrough and cell.col_idx<=2 and self.__ignore_strike_row:
                     break
                 # 排除掉第一行的标题
                 if cell.col_idx<=len(column_title_name) and cell.row>=2:
                     title_name=column_title_name[cell.col_idx-1]
                     cell_value[title_name]=cell.value
+                    # debug
+                    if cell.value == 'COUNTRY':
+                        pass
+                        # print('stop')
                     #print(cell_value)
             if len(cell_value)>0:
                 cell_value['moduleName']=self.__file_name
@@ -64,7 +68,7 @@ class Template(object):
 
 if __name__=='__main__':
 
-    file_name='./templates/UAL_Mapping_Party_V0.2.4.xlsx'
+    file_name='./templates/1.Template_Mapping_Party_V0.5_DM.xlsx'
     #file_name='sample.xlsx'
     template1=Template(file_name)
     mappingcols=template1.get_mapping_cols()
