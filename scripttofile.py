@@ -3,7 +3,7 @@
 
 __author__ = 'Owen_Study/owen_study@126.com'
 import os, traceback
-import veriscript
+import veriscript, configure
 
 '''把脚本生成到脚本文件中'''
 # 创建的表是不是需要数据类型，默认为不需要，生成一个统计的类型长度
@@ -55,7 +55,14 @@ def generate_all_scripts(need_data_type = False):
                 scripts_veri = scripts_veri +'--'.rjust(20,'-')+file_name_veri+'\n'
                 scripts_veri=scripts_veri+veri_table+'\n'
                 pass
-                # 生成控制文件及执行加载的命令文件
+                # 生成控制文件及执行加载的命令文件,如果配置文件没有则使用默认值
+                sqlldr_config_file_name_ext = configure.sqlloader_configure.get('file_name_ext','txt')
+                sqlldr_config_terminated_by= configure.sqlloader_configure.get('terminated_by',',')
+                sqlldr_config_enclosed_by= configure.sqlloader_configure.get('enclosed_by','"')
+                sqlldr_config_nls_lang= configure.sqlloader_configure.get('nls_lang',"AMERICAN_AMERICA.ZHS16GBK")
+
+
+
                 script_handler.gen_control_files()
         except Exception as e:
             traceback.print_exc()

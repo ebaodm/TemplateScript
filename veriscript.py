@@ -4,7 +4,7 @@
 __author__ = 'Owen_Study/owen_study@126.com'
 
 import re,os
-import template
+import template, configure
 
 ''' 传入mapping column list列表'''
 class TemplateScript(object):
@@ -200,12 +200,19 @@ class TemplateScript(object):
     )
     '''
     def __create_control_file(self, table_name, file_name, column_list, column_split = '|'):
+        # 生成控制文件及执行加载的命令文件,如果配置文件没有则使用默认值
+        sqlldr_config_file_replace = configure.sqlloader_configure.get('append_type', "replace")
+        sqlldr_config_file_name_ext = file_name +'.' + configure.sqlloader_configure.get('file_name_ext', 'txt')
+        sqlldr_config_terminated_by = configure.sqlloader_configure.get('terminated_by', ',')
+        sqlldr_config_enclosed_by = configure.sqlloader_configure.get('enclosed_by', '"')
+        sqlldr_config_nls_lang = configure.sqlloader_configure.get('nls_lang', "AMERICAN_AMERICA.ZHS16GBK")
+
         control_file_format='load data \n'+\
                         "infile '{0}'\n"+\
-                        "replace into table {1}\n"+\
-                        "fields terminated by '{2}' trailing nullcols\n"+\
+                        "{4} into table {1}\n"+\
+                        "fields terminated by '{2}' optionally enclosed by '{5}' trailing nullcols\n"+\
                         "(\n{3}\n)"
-        control_file_format=control_file_format.format(file_name,table_name,column_split,column_list)
+        control_file_format=control_file_format.format(sqlldr_config_file_name_ext,table_name,sqlldr_config_terminated_by,column_list,sqlldr_config_file_replace, sqlldr_config_enclosed_by)
         return control_file_format
     '''运行sqlldr的文件'''
     def __sqlldr_run_script(self, table_name):
@@ -286,7 +293,7 @@ class TemplateScript(object):
             all_column_list = all_column_list[0:len(all_column_list) - 2]
             lower_table_name=table_name.lower()
             # 每个表生成一个文件
-            control_file_content=self.__create_control_file(lower_table_name, './datafiles/'+lower_table_name+ '.' + file_ext_name, all_column_list, column_split)
+            control_file_content=self.__create_control_file(lower_table_name, './datafiles/'+lower_table_name, all_column_list, column_split)
             # 保存到文件中
             control_file_name= './sqlldr/controlfiles/' + lower_table_name+'.ctl'
             control_file=open(control_file_name, 'w')
@@ -498,8 +505,8 @@ class TemplateScript(object):
 if __name__=='__main__':
 
 
-    script=TemplateScript('./templates/UAL_Mapping_Party_V0.2.5.xlsx')
+    script=TemplateScript('./templates/SG_Mapping_Party_V0.8_27092017.xlsx')
     script.clear_sqlldr_file()
     script.gen_control_files()
-    script.save_template_create_script()
+    # script.save_template_create_script()
     # script.save_script('party.sql')
