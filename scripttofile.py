@@ -83,4 +83,6 @@ def generate_all_scripts(need_data_type = False):
     script_handler.save_run_all_scripts(file_name_exec,run_all_scripts)
 
 if __name__=='__main__':
-    generate_all_scripts(need_data_type=False)
+    # 默认为生成统一的数据类型
+    create_table_configure = configure.create_table_configure.get('real_data_type', False)
+    generate_all_scripts(need_data_type=create_table_configure)
