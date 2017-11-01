@@ -8,6 +8,6 @@ Template related script, including creating table, basic verification
   4. 文件需要放在程序目录中的templates子目录，生成的脚本文件都在这个子目录
   5. 列的数据类型定义只支持三种类型的处理，DATE, NUMBER, VARCHAR2
   6. 运行的命令如下， python scripttofile.py
-  7. 生成的创建表文件根据传入的参数来生成不同的类型，如果为TRUE则是按实际类型，否则是按固定长度300,以方便加载，如果有长度超过300的则使用template中的实际长度
-  8. 生成sqlldr加载文件，并按目录进行分类存放
+  7. 生成sqlldr加载文件，并按目录进行分类存放
+  8. 配置文件conigure.py ，通过修改这个配置文件来决定生成控制文件的形式，也可以配置创建表数据类型的选项来决定生成统一的VARCHAR2或者定义的类型
 
