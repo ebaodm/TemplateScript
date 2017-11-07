@@ -34,6 +34,7 @@ class TemplateScript(object):
         table_list=[]
         for row in self.__mapping_column_list:
             if row.tableName:
+                # 增加一个表前缀，以就对不同的项目有不同的需求
                 table_list.append(row.tableName)
         key_table_list=list(set(table_list))
         return key_table_list
@@ -95,8 +96,9 @@ class TemplateScript(object):
         script=None
         all_table_script=''
         for table_name in self.__table_list:
-            script='drop table '+table_name+';\n'
-            script=script+'create table '+table_name +'(\n'
+            newtable_name = configure.create_table_configure.get('table_prefix')+table_name
+            script='drop table '+newtable_name+';\n'
+            script=script+'create table '+newtable_name +'(\n'
             for row in self.__mapping_column_list:
                 if row.tableName==table_name:
                     #调整字段的长度，使脚本对齐美观
@@ -155,8 +157,9 @@ class TemplateScript(object):
         script=None
         all_table_script=''
         for table_name in self.__table_list:
-            script='drop table '+table_name+';\n'
-            script=script+'create table '+table_name +'(\n'
+            newtable_name = configure.create_table_configure.get('table_prefix')+table_name
+            script='drop table '+newtable_name+';\n'
+            script=script+'create table '+newtable_name +'(\n'
             for row in self.__mapping_column_list:
                 if row.tableName==table_name:
                     #调整字段的长度，使脚本对齐美观
@@ -284,6 +287,7 @@ class TemplateScript(object):
         for table_name in self.__table_list:
             one_column_list_format = '{0} \"TRIM(:{1})\",\n'
             all_column_list = ''
+            newtable_name = configure.create_table_configure.get('table_prefix')+table_name
             for row in self.__mapping_column_list:
                 if row.tableName == table_name:
                     # 每个列一行组成列的字符串
@@ -293,7 +297,7 @@ class TemplateScript(object):
             all_column_list = all_column_list[0:len(all_column_list) - 2]
             lower_table_name=table_name.lower()
             # 每个表生成一个文件
-            control_file_content=self.__create_control_file(lower_table_name, './datafiles/'+lower_table_name, all_column_list, column_split)
+            control_file_content=self.__create_control_file(newtable_name, './datafiles/'+lower_table_name, all_column_list, column_split)
             # 保存到文件中
             control_file_name= './sqlldr/controlfiles/' + lower_table_name+'.ctl'
             control_file=open(control_file_name, 'w')
@@ -435,21 +439,26 @@ class TemplateScript(object):
     def gen_veri_template_script(self):
         total_veri_sql = ''
         for table_name in self.__table_list:
+            newtable_name = configure.create_table_configure.get('table_prefix')+table_name
             for row in self.__mapping_column_list:
                 # 每个表单独一起处理
                 if row.tableName == table_name:
                     # 基础 的数据类型校验
-                    base_script=self.__get_data_type_sql(row.moduleName,row.tableName,row.columnName,row.dataType,row.length)
+                    base_script=self.__get_data_type_sql(row.moduleName,newtable_name,row.columnName,row.dataType,row.length)
                     total_veri_sql=total_veri_sql+base_script
                     # 非空校验
-                    nonnullable_sql=self.__get_nullable_sql(row.moduleName,row.tableName,row.columnName,row.nullable)
+                    nonnullable_sql=self.__get_nullable_sql(row.moduleName,newtable_name,row.columnName,row.nullable)
                     total_veri_sql = total_veri_sql + nonnullable_sql
                     # 主键/唯一类型校验
-                    unique_sql=self.__get_unique_sql(row.moduleName,row.tableName,row.columnName,row.primaryKey)
+                    unique_sql=self.__get_unique_sql(row.moduleName,newtable_name,row.columnName,row.primaryKey)
                     total_veri_sql = total_veri_sql + unique_sql
                     # 外键类型校验，只校验template之间的关系，代码表由于字段名称不统一，目前 还没有办法把校验加进来
                     try:
-                        fk_sql=self.__get_foreign_key_sql(row.moduleName,row.tableName,row.columnName,row.referTable)
+                        if row.referTable is not None:
+                            newrefertable = configure.create_table_configure.get('table_prefix') + row.referTable
+                            fk_sql=self.__get_foreign_key_sql(row.moduleName,newtable_name,row.columnName,newrefertable)
+                        else:
+                            fk_sql =''
                     except Exception as e:
                         print(str(e))
                     total_veri_sql = total_veri_sql + fk_sql
@@ -475,6 +484,8 @@ class TemplateScript(object):
     '''把创建表脚本写入文件'''
     def save_template_create_script(self,file_name, need_data_type = False):
         script_file=open(file_name,'w')
+        filenameonly = file_name.split('/')[-1]
+        script_file.write("spool {0}.log\n".format(filenameonly))
         # Template表的创建脚本
         if need_data_type is False:
             create_table_script_template=self.__create_template_script()
@@ -482,16 +493,20 @@ class TemplateScript(object):
             create_table_script_template = self.__create_template_script_datatype()
 
         script_file.write(create_table_script_template)
+        script_file.write("\nspool off")
         script_file.close()
         return create_table_script_template
         pass
     '''把创建表脚本写入文件'''
     def save_template_veri_script(self,file_name):
         script_file=open(file_name,'w')
+        filenameonly = file_name.split('/')[-1]
+        script_file.write("spool {0}.log\n".format(filenameonly))
         # 校验脚本
         veri_script=self.gen_veri_template_script()
 
         script_file.write(veri_script)
+        script_file.write("\nspool off")
         script_file.close()
 
         return veri_script
