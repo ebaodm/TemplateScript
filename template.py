@@ -68,7 +68,7 @@ class Template(object):
 
 if __name__=='__main__':
 
-    file_name='./templates/1.Template_Mapping_Party_V0.5_DM.xlsx'
+    file_name='./templates/UAL_Mapping_PolAccount_V0.4.xlsx'
     #file_name='sample.xlsx'
     template1=Template(file_name)
     mappingcols=template1.get_mapping_cols()

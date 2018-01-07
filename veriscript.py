@@ -347,16 +347,21 @@ class TemplateScript(object):
         need_verify = True
         if refertable:
             #只校验template之间的外銉关系
-            if str(refertable)[0:2]!='DM_':
+            if str(refertable)[0:3]!='DM_':
                 return ''
         else:
             return ''
         # 取得外键表的主键
-        pk_column_name=self.__get_pk_column_name(table_name)
+        pk_column_name=self.__get_pk_column_name(refertable)
+        #  不在同一个文件中的引用找不到对应表的主键时用子表的字段名称
+        if pk_column_name == '' or pk_column_name is None:
+            pk_column_name = column_name
+        elif refertable == 'DM_PARTY':
+            pk_column_name = 'PARTY_ID'
         if refertable :
             veri_code = 'VERI_FOREIGN_KEY_TEMPLATE'
-            where_sql = ' where (select not exists(select 1 from %s  b where %s.%s=b.%s)'%\
-                        (table_name,table_name,column_name,pk_column_name)
+            where_sql = ' where ( not exists(select 1 from %s  b where %s.%s=b.%s))'%\
+                        (refertable,table_name,column_name,pk_column_name)
         else:
             need_verify = False
 
