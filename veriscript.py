@@ -360,8 +360,8 @@ class TemplateScript(object):
             pk_column_name = 'PARTY_ID'
         if refertable :
             veri_code = 'VERI_FOREIGN_KEY_TEMPLATE'
-            where_sql = ' where ( not exists(select 1 from %s  b where %s.%s=b.%s))'%\
-                        (refertable,table_name,column_name,pk_column_name)
+            where_sql = ' where ( not exists(select 1 from %s  b where %s.%s=b.%s) and %s is not null)'%\
+                        (refertable,table_name,column_name,pk_column_name, column_name)
         else:
             need_verify = False
 
