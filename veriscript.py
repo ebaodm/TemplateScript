@@ -72,15 +72,43 @@ class TemplateScript(object):
                 /
         """
         public_function_script=public_function_script+"""
-        Create Or Replace Function F_IS_DATE (STR_DATE Varchar2)
+    CREATE OR REPLACE Function F_IS_DATE (STR_DATE Varchar2)
                 Return Number
             Is
                 V_RESULT   Integer;
                 V_DATE     Date;
+                errornum integer; 
             Begin
                 V_RESULT := 1;
-                V_DATE := To_date (STR_DATE, 'mm/dd/yyyy');
-                V_RESULT := 0;
+                errornum := 0;
+                for i in 1..4 loop
+                    begin 
+                        if errornum = 0 then 
+                          V_DATE := To_date (STR_DATE, 'mm/dd/yyyy');
+                          v_result :=0;
+                          exit;
+                        end if; 
+                        if errornum = 1 then                         
+                          V_DATE := To_date (STR_DATE, 'yyyy/mm/dd');
+                          v_result :=0;
+                          exit;
+                        end if;
+                        if errornum = 2 then                         
+                          V_DATE := To_date (STR_DATE, 'yyyy/mm/dd HH24:MI:ss');
+                          v_result :=0;
+                          exit;     
+                        end if;
+                        if errornum = 3 then                                           
+                          V_DATE := To_date (STR_DATE, 'yyyy/mm/dd HH24:MI:ssss');
+                          v_result :=0;
+                          exit;                 
+                        end if;   
+                     exception
+                       when others then 
+                           errornum :=errornum+1;
+                           V_RESULT := 1;
+                     end;
+                end loop ;
                 Return (V_RESULT);
             Exception
                 When Others
