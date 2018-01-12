@@ -1,0 +1,28 @@
+Run the verification steps.
+
+1. Build the environment(ual_test has build in o46g4), run for once at initial 
+   sqlplus run 
+   @00initial_scripts.sql
+2. Clear the original data if need( truncate all tables data)
+   select 'truncate table '||table_name||';' from tabs ; 
+   run the result sql to clear
+3. download the data file into folder datafiles from ftp
+   TemplateScript\sqlldr\datafiles
+   ual ftp: 
+   	ftp.ebaotech.com
+		User id ual_sftp
+		User passwd LOfHRdpu	
+		Path£º
+		/ual_sftp/Individual Life System/DC dump
+4. unzip the data file
+5. run the command to load data into database
+   double click
+   01loadingdata.bat  (has updated the user as ual_test/ual_test@o46g4)
+6. run the verification sql
+   sqlplus run 		
+   @01veri_scripts.sql
+7. check the verification result
+   select * from dm_template_veri a where a.veri_result>0; 
+   the result>0 means the wrong records of each table
+8. done         
+      

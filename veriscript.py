@@ -365,31 +365,31 @@ class TemplateScript(object):
 
     '''取得表的主键字段名称'''
     def __get_pk_column_name(self,table_name):
+        refer_table_name = table_name.split('.')[0]
         for row in self.__mapping_column_list:
-            if row.tableName==table_name and row.primaryKey=='Y':
+            if row.tableName==refer_table_name and row.primaryKey=='Y':
                 return row.columnName
         return None
 
     '''校验外键,template表之间的校验'''
     def __get_foreign_key_sql(self,module_name,table_name, column_name, refertable):
         need_verify = True
-        if refertable:
-            #只校验template之间的外銉关系
-            if str(refertable)[0:3]!='DM_':
-                return ''
-        else:
+        if refertable is None:
             return ''
-        # 取得外键表的主键
+        # 取得外键表的主键，优先使用中间表中已经存在表的主键值
+        refertable_name = refertable
         pk_column_name=self.__get_pk_column_name(refertable)
-        #  不在同一个文件中的引用找不到对应表的主键时用子表的字段名称
+        #  如果在本文件中找不到的外键表则用子表给定的字段名称
         if pk_column_name == '' or pk_column_name is None:
-            pk_column_name = column_name
-        elif refertable == 'DM_PARTY':
-            pk_column_name = 'PARTY_ID'
-        if refertable :
+            # 如果在sheet中找不到外键表的主键值则通过refer table里面给的列值来处理，如DM_PARTY.PARTY_ID的格式
+            if len(refertable.split('.'))>1:
+                pk_column_name = refertable.split('.')[1]
+                refertable_name = refertable.split('.')[0]
+        # 如果没有指定出外键表的字段名称则忽略生成这个外键校验
+        if refertable is not None and pk_column_name is not None:
             veri_code = 'VERI_FOREIGN_KEY_TEMPLATE'
             where_sql = ' where ( not exists(select 1 from %s  b where %s.%s=b.%s) and %s is not null)'%\
-                        (refertable,table_name,column_name,pk_column_name, column_name)
+                        (refertable_name,table_name,column_name,pk_column_name, column_name)
         else:
             need_verify = False
 
