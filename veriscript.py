@@ -377,7 +377,10 @@ class TemplateScript(object):
         if refertable is None:
             return ''
         # 取得外键表的主键，优先使用中间表中已经存在表的主键值
-        refertable_name = refertable
+        if len(refertable.split('.')) > 1:
+            refertable_name = refertable.split('.')[0]
+        else:
+            refertable_name = refertable
         pk_column_name=self.__get_pk_column_name(refertable)
         #  如果在本文件中找不到的外键表则用子表给定的字段名称
         if pk_column_name == '' or pk_column_name is None:
