@@ -17,7 +17,4 @@ Template related script, including creating table, basic verification
   C. 字符长度的校验
   D. 外键表完整性校验(Reference Table中设置为外键表名.列名(如:DM_PARTY.PARTY_ID)的形式会生成外键值校验)
   E. 主键值唯一性校验
-  F. 唯一键校验(一个表只支持一组组合唯一键校验，需要在Key列设置为字母U，所有标志为U的字段会自动生成)
-     
-    
-
+  F. 唯一键校验(一个表只支持一组组合唯一键校验，需要在Key列设置为字母U，所有标志为U的字段会自动生成
