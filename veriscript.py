@@ -408,10 +408,10 @@ class TemplateScript(object):
         return veri_sql
 
     ''' 校验唯一键数据'''
-    def __get_unique_sql(self,module_name,table_name, column_name,primarykey):
+    def __get_PK_sql(self,module_name,table_name, column_name,primarykey):
         need_verify = True
         if primarykey == 'Y':
-            veri_code = 'VERI_UNIQUE'
+            veri_code = 'VERI_PRIMARY_KEY'
             where_sql = ' where (select count(*) from %s  b where %s.%s=b.%s)>1'%\
                         (table_name,table_name,column_name,column_name)
         else:
@@ -475,12 +475,38 @@ class TemplateScript(object):
             veri_sql=''
 
         return veri_sql
-
+    '''生成唯一键，多字段联合唯一键或者单个字段都支持，Key这列可以设置为U后自动生成'''
+    def get_unique_sql(self,module_name,table_name, uni_column_str):
+        if uni_column_str is None or uni_column_str == '':
+            return ''
+        wheresql = 'where (select count(*) from {table_name} b where {connstr} )>1'
+        connstr = '1=1 '
+        show_column_name = '['
+        # 去除最后的,
+        uni_column_list = uni_column_str[0:len(uni_column_str)-1].split(',')
+        veri_code = 'VERI_UNIQUE_KEY'
+        for column in uni_column_list:
+            # 把UNIQUE KEY的列组合显示出来
+            show_column_name = show_column_name +column + ','
+            # 自关联条件
+            connstr = connstr + ' and a.{column_name} = b.{column_name} '.format(column_name=column)
+        show_column_name = show_column_name[0:len(show_column_name)-1]+']'
+        # where 条件SQL
+        wheresql = wheresql.format(table_name=table_name, connstr=connstr)
+        # 选择语句
+        unique_sql = 'select \'{module_name}\' as module_name, \'{table_name}\' as table_name,\'{column_name}\' as column_name,\'{veri_code}\' as VERI_CODE,count(*) as veri_result from {table_name}  a '
+        unique_sql = unique_sql.format(module_name=module_name,table_name=table_name,column_name=show_column_name,veri_code= veri_code)
+        # 组合成最终的校验语句
+        unique_sql = self.__insert_result_sql + unique_sql +'\n' + wheresql +';\n'
+        # print(unique_sql)
+        return unique_sql
+        pass
     '''校验字段的数据类型，长度，是否可为空,FK引用'''
     def gen_veri_template_script(self):
         total_veri_sql = ''
         for table_name in self.__table_list:
             newtable_name = configure.create_table_configure.get('table_prefix')+table_name
+            unique_columns = ''
             for row in self.__mapping_column_list:
                 # 每个表单独一起处理
                 if row.tableName == table_name:
@@ -490,9 +516,12 @@ class TemplateScript(object):
                     # 非空校验
                     nonnullable_sql=self.__get_nullable_sql(row.moduleName,newtable_name,row.columnName,row.nullable)
                     total_veri_sql = total_veri_sql + nonnullable_sql
-                    # 主键/唯一类型校验
-                    unique_sql=self.__get_unique_sql(row.moduleName,newtable_name,row.columnName,row.primaryKey)
-                    total_veri_sql = total_veri_sql + unique_sql
+                    # 主键类型校验
+                    pk_sql=self.__get_PK_sql(row.moduleName,newtable_name,row.columnName,row.primaryKey)
+                    total_veri_sql = total_veri_sql + pk_sql
+                    # 唯一健的列名称，可以允许有多个列
+                    if row.primaryKey == 'U':
+                        unique_columns = unique_columns +row.columnName+','
                     # 外键类型校验，只校验template之间的关系，代码表由于字段名称不统一，目前 还没有办法把校验加进来
                     try:
                         if row.referTable is not None:
@@ -503,8 +532,11 @@ class TemplateScript(object):
                     except Exception as e:
                         print(str(e))
                     total_veri_sql = total_veri_sql + fk_sql
-                    pass
-        total_veri_sql=total_veri_sql+'\n commit;\n'
+            # 生成多个组合的唯一键，在表的列扫描完成后再生成UNIQUE
+            unique_sql = self.get_unique_sql(row.moduleName,newtable_name,unique_columns)
+            total_veri_sql = total_veri_sql + unique_sql
+            pass
+        total_veri_sql= total_veri_sql+'\n commit;\n'
 
         return total_veri_sql
         pass
@@ -561,7 +593,9 @@ class TemplateScript(object):
 if __name__=='__main__':
 
 
-    script=TemplateScript('./templates/SG_Mapping_Party_V0.8_27092017.xlsx')
+    script=TemplateScript('./templates/UAL_Mapping_ILP_Basic_V0.43.xlsx')
+
+    # script.get_unique_sql('ilp','DM_CONTRACT_INVEST_RATE','item_id,account_code,prem_type')
     script.clear_sqlldr_file()
     script.gen_control_files()
     # script.save_template_create_script()
